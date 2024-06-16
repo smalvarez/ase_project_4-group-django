@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Home</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'styles.css' %}" />
+  </head>
+  <body>
+    <nav>
+      <ul>
+        <li><a href="{% url 'index' %}">Home</a></li>
+        <li><a href="{% url 'about' %}">About</a></li>
+        <li><a href="{% url 'recipes' %}">Recipes</a></li>
+      </ul>
+    </nav>
+    <div>
+      <h1>Welcome to the Recipe Book</h1>
+      <p>Practice 1: Display recipes</p>
+      <p>Test out 2 other routes</p>
+      <p>Practice writing loops with Django Template Language</p>
+    </div>
+    <div>
+      {% if recipes %}
+      <h2>All Recipes:</h2>
+      <ul>
+        {% for recipe in recipes %}
+        <li>
+          <h3>{{ recipe.name }}</h3>
+          <p><strong>Ingredients:</strong> {{ recipe.ingredients }}</p>
+          <p><strong>Steps:</strong> {{ recipe.steps }}</p>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <h2>No Recipes Found</h2>
+      {% endif %}
+    </div>
+    <div>
+      <a href="{% url 'new_recipe' %}">Add a New Recipe</a>
+      <a href="{% url 'remove_recipe' %}">Remove Recipe</a>
+    </div>
+  </body>
+</html>

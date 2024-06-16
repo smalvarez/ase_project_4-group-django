@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>About</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'styles.css' %}" />
+  </head>
+  <body>
+    <nav>
+      <ul>
+        <li><a href="{% url 'index' %}">Home</a></li>
+        <li><a href="{% url 'about' %}">About</a></li>
+        <li><a href="{% url 'recipes' %}">Recipes</a></li>
+      </ul>
+    </nav>
+    <div>
+      <h1>About Us</h1>
+      <p>
+        Welcome to our recipe website! We are passionate about sharing delicious
+        and easy-to-make recipes with you.
+      </p>
+      <p>
+        Our mission is to inspire you to cook at home and enjoy the process of
+        creating meals with your loved ones.
+      </p>
+      <p>
+        We hope you find our recipes helpful and enjoy cooking as much as we do!
+      </p>
+    </div>
+  </body>
+</html>

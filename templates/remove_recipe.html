@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Remove Recipes</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'styles.css' %}" />
+  </head>
+  <body>
+    <nav>
+      <ul>
+        <li><a href="{% url 'index' %}">Home</a></li>
+        <li><a href="{% url 'about' %}">About</a></li>
+        <li><a href="{% url 'recipes' %}">Recipes</a></li>
+      </ul>
+    </nav>
+    <div>
+      <h1>Remove Recipes</h1>
+      <form action="{% url 'remove_recipe' %}" method="POST">
+        {% csrf_token %}
+        <label for="recipe_ids">Select recipes to remove:</label>
+        <select
+          name="recipe_ids"
+          id="recipe_ids"
+          multiple
+          size="10"
+          style="width: 100%; padding: 10px"
+        >
+          {% for recipe in recipes %}
+          <option value="{{ recipe.id }}">{{ recipe.name }}</option>
+          {% endfor %}
+        </select>
+        <br /><br />
+        <input type="submit" value="Remove Selected Recipes" />
+      </form>
+    </div>
+  </body>
+</html>
