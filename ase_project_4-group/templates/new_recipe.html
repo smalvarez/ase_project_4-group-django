@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Add a New Recipe</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'styles.css' %}" />
+  </head>
+  <body>
+    <nav>
+      <ul>
+        <li><a href="{% url 'index' %}">Home</a></li>
+        <li><a href="{% url 'about' %}">About</a></li>
+        <li><a href="{% url 'recipes' %}">Recipes</a></li>
+      </ul>
+    </nav>
+    <div>
+      <h1>Add a New Recipe</h1>
+      <form method="POST" action="{% url 'add_recipe' %}">
+        {% csrf_token %}
+        <label for="recipe_name">Recipe Name:</label><br />
+        <input
+          type="text"
+          id="recipe_name"
+          name="recipe_name"
+          required
+        /><br /><br />
+
+        <label for="ingredients">Ingredients:</label><br />
+        <textarea
+          id="ingredients"
+          name="ingredients"
+          rows="4"
+          cols="50"
+          required
+        ></textarea
+        ><br /><br />
+
+        <label for="steps">Steps:</label><br />
+        <textarea id="steps" name="steps" rows="4" cols="50" required></textarea
+        ><br /><br />
+
+        <input type="submit" value="Submit" />
+      </form>
+    </div>
+  </body>
+</html>
