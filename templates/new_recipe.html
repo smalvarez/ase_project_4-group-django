@@ -19,13 +19,8 @@
       <h1>Add a New Recipe</h1>
       <form method="POST" action="{% url 'add_recipe' %}">
         {% csrf_token %}
-        <label for="recipe_name">Recipe Name:</label><br />
-        <input
-          type="text"
-          id="recipe_name"
-          name="recipe_name"
-          required
-        /><br /><br />
+        <label for="name">Recipe Name:</label><br />
+        <input type="text" id="name" name="name" required /><br /><br />
 
         <label for="ingredients">Ingredients:</label><br />
         <textarea

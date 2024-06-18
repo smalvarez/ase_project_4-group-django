@@ -15,45 +15,58 @@ def recipes(request):
     all_recipes = Recipe.objects.all()
     return render(request, 'recipes.html', {'recipes': all_recipes})
 
-def get_recipe(request, recipe_id):
-    recipe = get_object_or_404(Recipe, id=recipe_id)
-    ingredients = recipe.ingredients.split('\n')
-    steps = recipe.steps.split('\n')
-    return render(request, 'get_recipe.html', {
-        'recipe': recipe,
-        'ingredients': ingredients,
-        'steps': steps
-    })
+def get_recipe(request, id=None):
+    # Initialize query parameters
+    query_params = {}
 
-def get_recipe_by_query(request):
-    recipe_id = request.GET.get('recipe_id')
-    if recipe_id is not None:
+    if id is None:
+        id = request.GET.get('id')
+    name = request.GET.get('name')
+    ingredients = request.GET.get('ingredients')
+    steps = request.GET.get('steps')
+
+    # Try to convert id to integer if it's provided
+    if id is not None:
         try:
-            recipe_id = int(recipe_id)  # Convert to integer and handle potential ValueError
-            recipe = Recipe.objects.get(id=recipe_id)
-            ingredients = recipe.ingredients.split('\n')
-            steps = recipe.steps.split('\n')
-            return render(request, 'get_recipe.html', {
-                'recipe': recipe,
-                'ingredients': ingredients,
-                'steps': steps
-            })
-        except (ValueError, Recipe.DoesNotExist):
-            raise Http404("Recipe does not exist")
+            id = int(id)
+            query_params['id'] = id
+        except ValueError:
+            raise Http404("Invalid recipe ID")
+    
+    if name is not None:
+        query_params['name__iexact'] = name
+    if ingredients is not None:
+        query_params['ingredients__icontains'] = ingredients
+    if steps is not None:
+        query_params['steps__icontains'] = steps
+
+    # Retrieve the recipe by any or all parameters
+    if query_params:
+        recipe = get_object_or_404(Recipe, **query_params)
     else:
-        raise Http404("No recipe ID provided")
+        raise Http404("No valid query parameter provided")
+
+    ingredients_list = recipe.ingredients.split('\n')
+    steps_list = recipe.steps.split('\n')
+
+    return JsonResponse({
+        'id': recipe.id,
+        'name': recipe.name,
+        'ingredients': ingredients_list,
+        'steps': steps_list
+    })
 
 def new_recipe(request):
     return render(request, 'new_recipe.html')
 
 def add_recipe(request):
     if request.method == "POST":
-        recipe_name = request.POST.get("recipe_name")
+        name = request.POST.get("name")
         ingredients = request.POST.get("ingredients")
         steps = request.POST.get("steps")
-        new_recipe = Recipe(name=recipe_name, ingredients=ingredients, steps=steps)
+        new_recipe = Recipe(name=name, ingredients=ingredients, steps=steps)
         new_recipe.save()
-        return HttpResponseRedirect(f'{reverse("thankyou")}?recipe_name={recipe_name}&ingredients={ingredients}&steps={steps}')
+        return HttpResponseRedirect(f'{reverse("thankyou")}?name={name}&ingredients={ingredients}&steps={steps}')
     else:
         return HttpResponseRedirect(reverse('new_recipe'))  # Redirect to new_recipe if not POST
 
@@ -64,10 +77,14 @@ def post_recipe(request):
     if request.method == "POST":
         try:
             data = json.loads(request.body)
-            recipe_name = data.get("recipe_name")
+            name = data.get("name")
             ingredients = data.get("ingredients")
             steps = data.get("steps")
-            new_recipe = Recipe(name=recipe_name, ingredients=ingredients, steps=steps)
+
+            if not name or not ingredients or not steps:
+                raise ValueError("Missing required fields")
+
+            new_recipe = Recipe(name=name, ingredients=ingredients, steps=steps)
             new_recipe.save()
             return JsonResponse({'status': 'success'})
         except (ValueError, KeyError) as e:
@@ -83,30 +100,51 @@ def delete_recipe(request):
                 data = json.loads(request.body)
             else:
                 data = request.DELETE
-                
+
             id = data.get("id")
-            if not id:
-                return JsonResponse({'status': 'error', 'message': 'No recipe ID provided'}, status=400)
+            name = data.get("name")
+            ingredients = data.get("ingredients")
+            steps = data.get("steps")
+
+            # Build the filter criteria based on the provided data
+            filter_criteria = {}
+            if id is not None:
+                filter_criteria['id'] = id
+            if name is not None:
+                filter_criteria['name__iexact'] = name
+            if ingredients is not None:
+                filter_criteria['ingredients__icontains'] = ingredients
+            if steps is not None:
+                filter_criteria['steps__icontains'] = steps
+
+            # Ensure at least one filter criteria is provided
+            if not filter_criteria:
+                return JsonResponse({'status': 'error', 'message': 'No valid parameter provided'}, status=400)
+
+            # Retrieve the recipe based on the filter criteria
             try:
-                id = int(id)
-            except ValueError:
-                return JsonResponse({'status': 'error', 'message': 'Invalid recipe ID'}, status=400)
-            recipe = Recipe.objects.get(id=id)
+                recipe = Recipe.objects.get(**filter_criteria)
+            except Recipe.DoesNotExist:
+                return JsonResponse({'status': 'error', 'message': 'Recipe not found'}, status=404)
+            except Recipe.MultipleObjectsReturned:
+                return JsonResponse({'status': 'error', 'message': 'Multiple recipes found. Provide more specific criteria.'}, status=400)
+
+            # Delete the found recipe
             recipe.delete()
             return JsonResponse({'status': 'success'})
-        except Recipe.DoesNotExist:
-            return JsonResponse({'status': 'error', 'message': 'Recipe not found'}, status=404)
+
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
     else:
         return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
 
 
+
 def thankyou(request):
-    recipe_name = request.GET.get("recipe_name", "Unknown")
+    name = request.GET.get("name", "Unknown")
     ingredients = request.GET.get("ingredients", "Unknown")
     steps = request.GET.get("steps", "Unknown")
-    return render(request, 'thankyou.html', {'recipe_name': recipe_name, 'ingredients': ingredients, 'steps': steps})
+    return render(request, 'thankyou.html', {'name': name, 'ingredients': ingredients, 'steps': steps})
 
 def remove_recipe(request):
     if request.method == "POST":
@@ -115,3 +153,11 @@ def remove_recipe(request):
         return redirect('recipes')
     all_recipes = Recipe.objects.all()
     return render(request, 'remove_recipe.html', {'recipes': all_recipes})
+
+def get_all_recipes(request):
+    if request.method == 'GET':
+        recipes = Recipe.objects.all()
+        recipes_list = list(recipes.values())
+        return JsonResponse({'recipes': recipes_list})
+    else:
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
