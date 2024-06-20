@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Recipe Details - {{ recipe.name }}</title>
+  </head>
+  <body>
+    <h1>{{ recipe.name }}</h1>
+
+    <p><strong>Ingredients:</strong></p>
+    <ul>
+      {% for ingredient in ingredients %}
+      <li>{{ ingredient }}</li>
+      {% endfor %}
+    </ul>
+
+    <p><strong>Steps:</strong></p>
+    <ol>
+      {% for step in steps %}
+      <li>{{ step }}</li>
+      {% endfor %}
+    </ol>
+  </body>
+</html>

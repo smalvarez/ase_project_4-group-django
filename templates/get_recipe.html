@@ -1,23 +1,8 @@
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Recipe Details - {{ recipe.name }}</title>
-  </head>
-  <body>
-    <h1>{{ recipe.name }}</h1>
-
-    <p><strong>Ingredients:</strong></p>
-    <ul>
-      {% for ingredient in ingredients %}
-      <li>{{ ingredient }}</li>
-      {% endfor %}
-    </ul>
-
-    <p><strong>Steps:</strong></p>
-    <ol>
-      {% for step in steps %}
-      <li>{{ step }}</li>
-      {% endfor %}
-    </ol>
-  </body>
-</html>
+{% for recipe in recipes %}
+<li>
+  <h3>{{ recipe.name }}</h3>
+  <p><strong>Ingredients:</strong> {{ recipe.ingredients }}</p>
+  <p><strong>Steps:</strong> {{ recipe.steps }}</p>
+  <a href="{% url 'get_recipe' recipe.id %}">View details</a>
+</li>
+{% endfor %}
