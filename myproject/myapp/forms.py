@@ -1,4 +1,5 @@
 from django import forms
+from .models import Recipe
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 from .models import User, UserProfile
 
@@ -24,3 +25,9 @@ class PasswordChangeFormCustom(forms.Form):
             if new_password != confirm_new_password:
                 raise forms.ValidationError("New password and confirm new password do not match.")
         return cleaned_data
+    
+class RecipeForm(forms.ModelForm):
+    class Meta:
+        model = Recipe
+        fields = ['name', 'description', 'imageurl', 'category', 'ingredients', 'instructions']
+

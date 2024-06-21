@@ -14,14 +14,11 @@
         <li><a href="{% url 'about' %}">About</a></li>
         <li><a href="{% url 'recipes' %}">Recipes</a></li>
         <li><a href="#" id="sign-off">Sign Off</a></li>
-        <li>
-          <a href="#profile-settings" id="profile-settings-link"
-            >Profile Settings</a
-          >
-        </li>
+        <li><a href="#" id="profile-settings-link">Profile Settings</a></li>
       </ul>
     </nav>
-    <div>
+
+    <div class="about-section">
       <h1>About Us</h1>
       <p>
         Welcome to our recipe website! We are passionate about sharing delicious
@@ -71,6 +68,7 @@
       </form>
       <button type="button" id="delete-account-button">Delete Account</button>
       <p id="profile-message"></p>
+      <button type="button" id="go-back-home">Go Back to Home</button>
     </div>
 
     <script>
@@ -100,14 +98,19 @@
         .getElementById("sign-off")
         .addEventListener("click", function () {
           localStorage.removeItem("token");
-          location.reload();
+          window.location.href = "/";
         });
 
       document
         .getElementById("profile-settings-link")
-        .addEventListener("click", function () {
+        .addEventListener("click", function (event) {
+          event.preventDefault();
           document.getElementById("profile-settings").style.display = "block";
+          document.querySelector(".about-section").style.display = "none"; // Hide about section
           fetchUserInfo();
+          document
+            .getElementById("profile-settings")
+            .scrollIntoView({ behavior: "smooth" });
         });
 
       function fetchUserInfo() {
@@ -244,7 +247,12 @@
           }
         });
 
-      // Simulate authentication for demo purposes
+      document
+        .getElementById("go-back-home")
+        .addEventListener("click", function () {
+          window.location.href = "{% url 'index' %}";
+        });
+
       document.addEventListener("DOMContentLoaded", function () {
         const token = localStorage.getItem("token");
         if (token) {

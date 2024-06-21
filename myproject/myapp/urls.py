@@ -1,6 +1,6 @@
 # urls.py
-from django.contrib import admin
 from django.urls import path, include
+from django.contrib.auth import views as auth_views
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
@@ -8,14 +8,14 @@ from rest_framework_simplejwt.views import (
 
 from myproject.myapp import views  # Make sure to replace `myapp` with the actual name of your app
 
-urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('api/signup/', views.signup, name='signup'),
+urlpatterns = [    
+   
+    path('signup/', views.signup, name='signup'),
     path('api/login/', views.login, name='login'),
     path('api/get_profile/', views.get_profile, name='get_profile'),
     path('api/update_email/', views.update_email, name='update_email'),
     path('api/update_password/', views.update_password, name='update_password'),
-    path('api/update_name/', views.update_name, name='update_name'),
+    path('update_name/', views.update_name, name='update_name'),
     path('api/delete_account/', views.delete_account, name='delete_account'),
     path('', views.index, name='index'),
     path('about/', views.about, name='about'),
@@ -33,4 +33,7 @@ urlpatterns = [
     path('api/get_user_info/', views.get_user_info, name='get_user_info'),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('recipes/edit/<int:recipe_id>/', views.edit_recipe, name='edit_recipe'),
+    path('recipes/<int:pk>/', views.recipe_detail, name='recipe_detail'),
+    path('thankyou_add/', views.thankyou_add, name='thankyou_add'),
 ]

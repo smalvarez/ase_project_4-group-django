@@ -1,8 +1,26 @@
 {% for recipe in recipes %}
 <li>
   <h3>{{ recipe.name }}</h3>
-  <p><strong>Ingredients:</strong> {{ recipe.ingredients }}</p>
-  <p><strong>Steps:</strong> {{ recipe.steps }}</p>
+  <p><strong>Description:</strong> {{ recipe.description }}</p>
+  <p><strong>Category:</strong> {{ recipe.category }}</p>
+  <img
+    src="{{ recipe.imageUrl }}"
+    alt="{{ recipe.name }}"
+    width="100"
+    height="100"
+  />
+  <p><strong>Ingredients:</strong></p>
+  <ul>
+    {% for ingredient in recipe.ingredients.splitlines %}
+    <li>{{ ingredient }}</li>
+    {% endfor %}
+  </ul>
+  <p><strong>Instructions:</strong></p>
+  <ol>
+    {% for instruction in recipe.instructions.splitlines %}
+    <li>{{ instruction }}</li>
+    {% endfor %}
+  </ol>
   <a href="{% url 'get_recipe' recipe.id %}">View details</a>
 </li>
 {% endfor %}

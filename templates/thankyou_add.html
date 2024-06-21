@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Home</title>
+    <title>Thank You</title>
     {% load static %}
     <link rel="stylesheet" href="{% static 'styles.css' %}" />
   </head>
@@ -18,101 +18,23 @@
       </ul>
     </nav>
 
-    <div id="welcome-section" style="display: none">
-      <h1>Welcome to the Recipe Book</h1>
-      <p>Practice 1: Display recipes</p>
-      <p>Test out 2 other routes (get_recipe and add_recipe)</p>
-      <p>Practice writing loops with Django Template Language</p>
-    </div>
-
-    <div id="recipes-section" style="display: none">
-      {% if recipes %}
-      <h2>All Recipes:</h2>
-      <ul>
-        {% for recipe in recipes %}
-        <li>
-          <h3>{{ recipe.name }}</h3>
-          <p><strong>Description:</strong> {{ recipe.description }}</p>
-          <p><strong>Category:</strong> {{ recipe.category }}</p>
-          <img
-            src="{{ recipe.imageUrl }}"
-            alt="{{ recipe.name }}"
-            width="100"
-            height="100"
-          />
-          <p><strong>Ingredients:</strong></p>
-          <ul>
-            {% for ingredient in recipe.ingredients.splitlines %}
-            <li>{{ ingredient }}</li>
-            {% endfor %}
-          </ul>
-          <p><strong>Instructions:</strong></p>
-          <ol>
-            {% for instruction in recipe.instructions.splitlines %}
-            <li>{{ instruction }}</li>
-            {% endfor %}
-          </ol>
-          <a href="{% url 'get_recipe' recipe.id %}">View details</a>
-          <a href="{% url 'edit_recipe' recipe.id %}">Edit Recipe</a>
-        </li>
-        {% endfor %}
-      </ul>
-      {% else %}
-      <h2>No Recipes Found</h2>
-      {% endif %}
-    </div>
-
-    <div id="actions-section" style="display: none">
-      <a href="{% url 'add_recipe' %}">Add a New Recipe</a>
-      <a href="{% url 'remove_recipe' %}">Remove Recipe</a>
-    </div>
-
-    <div id="signup-section">
-      <h1>Sign Up</h1>
-      <form id="signup-form">
-        <label for="signup_first_name">First Name:</label>
-        <input
-          type="text"
-          id="signup_first_name"
-          name="first_name"
-          required
-        /><br />
-        <label for="signup_last_name">Last Name:</label>
-        <input
-          type="text"
-          id="signup_last_name"
-          name="last_name"
-          required
-        /><br />
-        <label for="signup_email">Email:</label>
-        <input type="email" id="signup_email" name="email" required /><br />
-        <label for="signup_password">Password:</label>
-        <input
-          type="password"
-          id="signup_password"
-          name="password"
-          required
-        /><br />
-        <button type="submit">Sign Up</button>
-      </form>
-      <p id="signup-message"></p>
-    </div>
-
-    <div id="login-section">
-      <h1>Login</h1>
-      <form id="login-form">
-        <label for="login_email">Email:</label>
-        <input type="email" id="login_email" name="email" required /><br />
-        <label for="login_password">Password:</label>
-        <input
-          type="password"
-          id="login_password"
-          name="password"
-          required
-        /><br />
-        <button type="submit">Login</button>
-      </form>
-      <p id="login-message"></p>
+    <div id="thank-you-section">
+      <h1>Thank You!</h1>
+      <p>Thank you for adding the following recipe:</p>
+      <div>
+        <p><strong>Name:</strong> {{ name }}</p>
+        <p><strong>Description:</strong> {{ description }}</p>
+        <p><strong>Category:</strong> {{ category }}</p>
+        <p>
+          <strong>Image URL:</strong>
+          <a href="{{ imageurl }}" target="_blank">{{ imageurl }}</a>
+        </p>
+        <p><strong>Ingredients:</strong></p>
+        <pre>{{ ingredients }}</pre>
+        <p><strong>Instructions:</strong></p>
+        <pre>{{ instructions }}</pre>
+      </div>
+      <p><a href="{% url 'index' %}">Go back to Home</a></p>
     </div>
 
     <div id="profile-settings" style="display: none">
@@ -171,106 +93,25 @@
 
       const csrfToken = getCSRFToken();
 
-      document
-        .getElementById("signup-form")
-        .addEventListener("submit", async function (event) {
-          event.preventDefault();
-          const first_name = document.getElementById("signup_first_name").value;
-          const last_name = document.getElementById("signup_last_name").value;
-          const email = document.getElementById("signup_email").value;
-          const password = document.getElementById("signup_password").value;
-
-          const response = await fetch("{% url 'signup' %}", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-CSRFToken": csrfToken,
-            },
-            body: JSON.stringify({ first_name, last_name, email, password }),
-          });
-
-          const data = await response.json();
-          const messageElement = document.getElementById("signup-message");
-
-          if (response.ok) {
-            messageElement.textContent = "Signup successful.";
-            messageElement.style.color = "green";
-          } else {
-            messageElement.textContent = data.message;
-            messageElement.style.color = "red";
-          }
-        });
-
-      document
-        .getElementById("login-form")
-        .addEventListener("submit", async function (event) {
-          event.preventDefault();
-          const email = document.getElementById("login_email").value;
-          const password = document.getElementById("login_password").value;
-
-          const response = await fetch("{% url 'login' %}", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-CSRFToken": csrfToken,
-            },
-            body: JSON.stringify({ email, password }),
-          });
-
-          const data = await response.json();
-          const messageElement = document.getElementById("login-message");
-
-          if (response.ok) {
-            messageElement.textContent = "Login successful.";
-            messageElement.style.color = "green";
-            localStorage.setItem("token", data.token);
-            showAuthenticatedSections();
-          } else {
-            messageElement.textContent = data.message;
-            messageElement.style.color = "red";
-          }
-        });
-
-      document.addEventListener("DOMContentLoaded", async function () {
-        const token = localStorage.getItem("token");
-        if (token) {
-          showAuthenticatedSections();
-        }
-      });
-
       function showAuthenticatedSections() {
         document.getElementById("main-nav").style.display = "block";
-        document.getElementById("welcome-section").style.display = "block";
-        document.getElementById("recipes-section").style.display = "block";
-        document.getElementById("actions-section").style.display = "block";
-        document.getElementById("login-section").style.display = "none";
-        document.getElementById("signup-section").style.display = "none";
+        document.getElementById("thank-you-section").style.display = "block";
       }
 
       document
         .getElementById("sign-off")
         .addEventListener("click", function () {
           localStorage.removeItem("token");
-          location.reload();
+          window.location.href = "/";
         });
 
       document
         .getElementById("profile-settings-link")
-        .addEventListener("click", function () {
+        .addEventListener("click", function (event) {
+          event.preventDefault();
           document.getElementById("profile-settings").style.display = "block";
-          document.getElementById("welcome-section").style.display = "none";
-          document.getElementById("recipes-section").style.display = "none";
-          document.getElementById("actions-section").style.display = "none";
+          document.getElementById("thank-you-section").style.display = "none";
           fetchUserInfo();
-        });
-
-      document
-        .getElementById("go-back-home")
-        .addEventListener("click", function () {
-          document.getElementById("profile-settings").style.display = "none";
-          document.getElementById("welcome-section").style.display = "block";
-          document.getElementById("recipes-section").style.display = "block";
-          document.getElementById("actions-section").style.display = "block";
         });
 
       function fetchUserInfo() {
@@ -406,6 +247,19 @@
             }
           }
         });
+
+      document
+        .getElementById("go-back-home")
+        .addEventListener("click", function () {
+          window.location.href = "{% url 'index' %}";
+        });
+
+      document.addEventListener("DOMContentLoaded", function () {
+        const token = localStorage.getItem("token");
+        if (token) {
+          showAuthenticatedSections();
+        }
+      });
     </script>
   </body>
 </html>

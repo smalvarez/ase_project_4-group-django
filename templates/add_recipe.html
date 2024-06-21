@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Add a New Recipe</title>
+    <title>Add or Edit a Recipe</title>
     {% load static %}
     <link rel="stylesheet" href="{% static 'styles.css' %}" />
   </head>
@@ -21,12 +21,48 @@
         </li>
       </ul>
     </nav>
-    <div>
-      <h1>Add a New Recipe</h1>
+
+    <div class="add-recipe">
+      <h1>Add Recipe</h1>
       <form method="POST" action="{% url 'add_recipe' %}">
         {% csrf_token %}
         <label for="name">Recipe Name:</label><br />
-        <input type="text" id="name" name="name" required /><br /><br />
+        <input
+          type="text"
+          id="name"
+          name="name"
+          value="{{ recipe.name }}"
+          required
+        /><br /><br />
+
+        <label for="description">Description:</label><br />
+        <textarea
+          id="description"
+          name="description"
+          rows="4"
+          cols="50"
+          required
+        >
+{{ recipe.description }}</textarea
+        ><br /><br />
+
+        <label for="imageurl">Image URL:</label><br />
+        <input
+          type="text"
+          id="imageurl"
+          name="imageurl"
+          value="{{ recipe.imageurl }}"
+          required
+        /><br /><br />
+
+        <label for="category">Category:</label><br />
+        <input
+          type="text"
+          id="category"
+          name="category"
+          value="{{ recipe.category }}"
+          required
+        /><br /><br />
 
         <label for="ingredients">Ingredients:</label><br />
         <textarea
@@ -35,11 +71,19 @@
           rows="4"
           cols="50"
           required
-        ></textarea
+        >
+{{ recipe.ingredients }}</textarea
         ><br /><br />
 
-        <label for="steps">Steps:</label><br />
-        <textarea id="steps" name="steps" rows="4" cols="50" required></textarea
+        <label for="instructions">Instructions:</label><br />
+        <textarea
+          id="instructions"
+          name="instructions"
+          rows="4"
+          cols="50"
+          required
+        >
+{{ recipe.instructions }}</textarea
         ><br /><br />
 
         <input type="submit" value="Submit" />
@@ -81,6 +125,7 @@
       </form>
       <button type="button" id="delete-account-button">Delete Account</button>
       <p id="profile-message"></p>
+      <button type="button" id="go-back-home">Go Back to Home</button>
     </div>
 
     <script>
@@ -110,14 +155,19 @@
         .getElementById("sign-off")
         .addEventListener("click", function () {
           localStorage.removeItem("token");
-          location.reload();
+          window.location.href = "/";
         });
 
       document
         .getElementById("profile-settings-link")
-        .addEventListener("click", function () {
+        .addEventListener("click", function (event) {
+          event.preventDefault();
           document.getElementById("profile-settings").style.display = "block";
+          document.querySelector(".add-recipe").style.display = "none"; // Hide about section
           fetchUserInfo();
+          document
+            .getElementById("profile-settings")
+            .scrollIntoView({ behavior: "smooth" });
         });
 
       function fetchUserInfo() {
@@ -254,7 +304,12 @@
           }
         });
 
-      // Simulate authentication for demo purposes
+      document
+        .getElementById("go-back-home")
+        .addEventListener("click", function () {
+          window.location.href = "{% url 'index' %}";
+        });
+
       document.addEventListener("DOMContentLoaded", function () {
         const token = localStorage.getItem("token");
         if (token) {

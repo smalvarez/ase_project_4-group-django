@@ -1,24 +1,19 @@
+<!-- recipe_detail.html -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Recipe Details - {{ recipe.name }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ recipe.name }}</title>
   </head>
   <body>
     <h1>{{ recipe.name }}</h1>
-
-    <p><strong>Ingredients:</strong></p>
-    <ul>
-      {% for ingredient in ingredients %}
-      <li>{{ ingredient }}</li>
-      {% endfor %}
-    </ul>
-
-    <p><strong>Steps:</strong></p>
-    <ol>
-      {% for step in steps %}
-      <li>{{ step }}</li>
-      {% endfor %}
-    </ol>
+    <p>{{ recipe.description }}</p>
+    <img src="{{ recipe.imageurl }}" alt="Recipe Image" />
+    <p>Category: {{ recipe.category }}</p>
+    <h2>Ingredients</h2>
+    <p>{{ recipe.ingredients }}</p>
+    <h2>Instructions</h2>
+    <p>{{ recipe.instructions }}</p>
   </body>
 </html>

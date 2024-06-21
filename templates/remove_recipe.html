@@ -21,7 +21,15 @@
         </li>
       </ul>
     </nav>
-    <div>
+
+    <div id="welcome-section" style="display: none">
+      <h1>Welcome to the Recipe Book</h1>
+      <p>Practice 1: Display recipes</p>
+      <p>Test out 2 other routes (get_recipe and add_recipe)</p>
+      <p>Practice writing loops with Django Template Language</p>
+    </div>
+
+    <div class="remove-recipe">
       <h1>Remove Recipes</h1>
       <form action="{% url 'remove_recipe' %}" method="POST">
         {% csrf_token %}
@@ -34,12 +42,49 @@
           style="width: 100%; padding: 10px"
         >
           {% for recipe in recipes %}
-          <option value="{{ recipe.id }}">{{ recipe.name }}</option>
+          <option value="{{ recipe.id }}">
+            {{ recipe.name }} - {{ recipe.description }}
+          </option>
           {% endfor %}
         </select>
         <br /><br />
         <input type="submit" value="Remove Selected Recipes" />
       </form>
+      <ul>
+        {% for recipe in recipes %}
+        <li>
+          <h2>{{ recipe.name }}</h2>
+          <p><strong>Description:</strong> {{ recipe.description }}</p>
+          <p><strong>Category:</strong> {{ recipe.category }}</p>
+          <img
+            src="{{ recipe.imageurl }}"
+            alt="{{ recipe.name }}"
+            width="100"
+            height="100"
+          />
+          <p><strong>Ingredients:</strong></p>
+          <ul>
+            {% for ingredient in recipe.ingredients.splitlines %}
+            <li>{{ ingredient }}</li>
+            {% endfor %}
+          </ul>
+          <p><strong>Instructions:</strong></p>
+          <ol>
+            {% for instruction in recipe.instructions.splitlines %}
+            <li>{{ instruction }}</li>
+            {% endfor %}
+          </ol>
+          {% if recipe.id %}
+          <a href="{% url 'edit_recipe' recipe.id %}">Edit Recipe</a>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div id="actions-section" style="display: none">
+      <a href="{% url 'add_recipe' %}">Add a New Recipe</a>
+      <a href="{% url 'remove_recipe' %}">Remove Recipe</a>
     </div>
 
     <div id="profile-settings" style="display: none">
@@ -77,6 +122,7 @@
       </form>
       <button type="button" id="delete-account-button">Delete Account</button>
       <p id="profile-message"></p>
+      <button type="button" id="go-back-home">Go Back to Home</button>
     </div>
 
     <script>
@@ -106,14 +152,19 @@
         .getElementById("sign-off")
         .addEventListener("click", function () {
           localStorage.removeItem("token");
-          location.reload();
+          window.location.href = "/";
         });
 
       document
         .getElementById("profile-settings-link")
-        .addEventListener("click", function () {
+        .addEventListener("click", function (event) {
+          event.preventDefault();
           document.getElementById("profile-settings").style.display = "block";
+          document.querySelector(".remove-recipe").style.display = "none"; // Hide about section
           fetchUserInfo();
+          document
+            .getElementById("profile-settings")
+            .scrollIntoView({ behavior: "smooth" });
         });
 
       function fetchUserInfo() {
@@ -250,7 +301,12 @@
           }
         });
 
-      // Simulate authentication for demo purposes
+      document
+        .getElementById("go-back-home")
+        .addEventListener("click", function () {
+          window.location.href = "{% url 'index' %}";
+        });
+
       document.addEventListener("DOMContentLoaded", function () {
         const token = localStorage.getItem("token");
         if (token) {

@@ -243,77 +243,48 @@ def index(request):
     recipes = Recipe.objects.all()
     return render(request, 'index.html', {'recipes': recipes})
 
+
+
 def about(request):
     return render(request, 'about.html')
+
+# Recipe routes
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def post_recipe(request):
+    try:
+        data = json.loads(request.body)
+        name = data.get("name")
+        description = data.get("description")
+        imageurl = data.get("imageurl")
+        category = data.get("category")
+        ingredients = data.get("ingredients")
+        instructions = data.get("instructions")
+
+        if not name or not description or not imageurl or not category or not ingredients or not instructions:
+            return JsonResponse({'status': 'error', 'message': 'Missing required fields'}, status=400)
+
+        new_recipe = Recipe(
+            name=name,
+            description=description,
+            imageurl=imageurl,
+            category=category,
+            ingredients="\n".join(ingredients),
+            instructions="\n".join(instructions)
+            
+        )
+        new_recipe.save()
+        return JsonResponse({'status': 'success', 'recipe_id': new_recipe.id}, status=201)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 def recipes(request):
     all_recipes = Recipe.objects.all()
     return render(request, 'recipes.html', {'recipes': all_recipes})
-from django.shortcuts import render, get_object_or_404
-from django.http import JsonResponse, Http404
-from .models import Recipe
-
-from django.shortcuts import render, get_object_or_404
-from django.http import JsonResponse, Http404
-from .models import Recipe
-
-def index(request):
-    recipes = Recipe.objects.all()
-    return render(request, 'index.html', {'recipes': recipes})
-
-def get_recipe(request, id):
-    recipe = get_object_or_404(Recipe, id=id)
-    ingredients_list = recipe.ingredients.split('\n')
-    steps_list = recipe.steps.split('\n')
-
-    return JsonResponse({
-        'id': recipe.id,
-        'name': recipe.name,
-        'ingredients': ingredients_list,
-        'steps': steps_list
-    })
 
 
-
-def new_recipe(request):
-    return render(request, 'new_recipe.html')
-
-
-@login_required
-def add_recipe(request):
-    if request.method == "POST":
-        name = request.POST.get("name")
-        ingredients = request.POST.get("ingredients")
-        steps = request.POST.get("steps")
-        user = request.user  # Get the currently logged-in user
-
-        new_recipe = Recipe(name=name, ingredients=ingredients, steps=steps, user=user)
-        new_recipe.save()
-
-        return redirect(reverse('thankyou') + f'?name={name}&ingredients={ingredients}&steps={steps}')
-    else:
-        return redirect(reverse('new_recipe'))
-
-
-@csrf_exempt
-def post_recipe(request):
-    if request.method == "POST":
-        try:
-            data = json.loads(request.body)
-            name = data.get("name")
-            ingredients = data.get("ingredients")
-            steps = data.get("steps")
-
-            if not name or not ingredients or not steps:
-                raise ValueError("Missing required fields")
-
-            new_recipe = Recipe(name=name, ingredients=ingredients, steps=steps)
-            new_recipe.save()
-            return JsonResponse({'status': 'success'})
-        except (ValueError, KeyError) as e:
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
-    else:
-        return JsonResponse({'status': 'invalid request'}, status=400)
+# Function to handle recipe deletion
 
 @csrf_exempt
 def delete_recipe(request):
@@ -326,22 +297,34 @@ def delete_recipe(request):
 
             id = data.get("id")
             name = data.get("name")
+            description = data.get("description")
+            imageurl = data.get("imageurl")
+            category = data.get("category")
             ingredients = data.get("ingredients")
-            steps = data.get("steps")
+            instructions = data.get("instructions")
 
+            # Build the filter criteria based on the provided data
             filter_criteria = {}
             if id is not None:
                 filter_criteria['id'] = id
             if name is not None:
                 filter_criteria['name__iexact'] = name
+            if description is not None:
+                filter_criteria['description__icontains'] = description
+            if imageurl is not None:
+                filter_criteria['imageurl__iexact'] = imageurl
+            if category is not None:
+                filter_criteria['category__iexact'] = category
             if ingredients is not None:
                 filter_criteria['ingredients__icontains'] = ingredients
-            if steps is not None:
-                filter_criteria['steps__icontains'] = steps
+            if instructions is not None:
+                filter_criteria['instructions__icontains'] = instructions
 
+            # Ensure at least one filter criteria is provided
             if not filter_criteria:
                 return JsonResponse({'status': 'error', 'message': 'No valid parameter provided'}, status=400)
 
+            # Retrieve the recipe based on the filter criteria
             try:
                 recipe = Recipe.objects.get(**filter_criteria)
             except Recipe.DoesNotExist:
@@ -349,6 +332,7 @@ def delete_recipe(request):
             except Recipe.MultipleObjectsReturned:
                 return JsonResponse({'status': 'error', 'message': 'Multiple recipes found. Provide more specific criteria.'}, status=400)
 
+            # Delete the found recipe
             recipe.delete()
             return JsonResponse({'status': 'success'})
 
@@ -357,28 +341,213 @@ def delete_recipe(request):
     else:
         return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
 
-def thankyou(request):
-    name = request.GET.get("name", "Unknown")
-    ingredients = request.GET.get("ingredients", "Unknown")
-    steps = request.GET.get("steps", "Unknown")
-    return render(request, 'thankyou.html', {'name': name, 'ingredients': ingredients, 'steps': steps})
 
+    
+from django.shortcuts import render, redirect
+from django.urls import reverse
+from urllib.parse import urlencode
+from django.views.decorators.csrf import csrf_exempt
+from .models import Recipe
+
+@csrf_exempt
 def remove_recipe(request):
     if request.method == "POST":
-        recipe_ids = request.POST.getlist("recipe_ids")
-        Recipe.objects.filter(id__in=recipe_ids).delete()
-        return redirect('recipes')
-    all_recipes = Recipe.objects.all()
-    return render(request, 'remove_recipe.html', {'recipes': all_recipes})
+        recipe_ids = request.POST.getlist('recipe_ids')
+        deleted_recipes = Recipe.objects.filter(id__in=recipe_ids)
+        
+        if deleted_recipes.exists():
+            recipe_names = ', '.join([recipe.name for recipe in deleted_recipes])
+            recipe_descriptions = ', '.join([recipe.description for recipe in deleted_recipes])
+            recipe_categories = ', '.join([recipe.category for recipe in deleted_recipes])
+            recipe_imageurls = ', '.join([recipe.imageurl for recipe in deleted_recipes])
+            recipe_ingredients = ' | '.join([recipe.ingredients for recipe in deleted_recipes])
+            recipe_instructions = ' | '.join([recipe.instructions for recipe in deleted_recipes])
+            
+            # Delete recipes after collecting details
+            deleted_recipes.delete()
+            
+            # Prepare query parameters
+            query_params = urlencode({
+                'name': recipe_names,
+                'description': recipe_descriptions,
+                'category': recipe_categories,
+                'imageurl': recipe_imageurls,
+                'ingredients': recipe_ingredients,
+                'instructions': recipe_instructions
+            })
+            
+            return redirect(f'/thankyou/?{query_params}')
+        
+    
+    recipes = Recipe.objects.all()
+    return render(request, 'remove_recipe.html', {'recipes': recipes})
 
+    
+from django.shortcuts import render
+
+def thankyou(request):
+    # Retrieve query parameters from the request
+    name = request.GET.get("name", "Unknown")
+    description = request.GET.get("description", "Unknown")
+    category = request.GET.get("category", "Unknown")
+    imageurl = request.GET.get("imageurl", "Unknown")
+    ingredients = request.GET.get("ingredients", "Unknown")
+    instructions = request.GET.get("instructions", "Unknown")
+
+    # Pass the parameters to the template context
+    context = {
+        'name': name,
+        'description': description,
+        'category': category,
+        'imageurl': imageurl,
+        'ingredients': ingredients,
+        'instructions': instructions
+    }
+    
+    # Render the thankyou template with the provided context
+    return render(request, 'thankyou.html', context)
+
+
+# Add other view functions here
+@csrf_exempt
+@require_http_methods(["GET"])
 def get_all_recipes(request):
-    if request.method == 'GET':
+    try:
         recipes = Recipe.objects.all()
-        recipes_list = list(recipes.values())
-        return JsonResponse({'recipes': recipes_list})
-    else:
-        return JsonResponse({'error': 'Invalid request method'}, status=405)
+        recipes_list = [
+            {
+                'id': recipe.id,
+                'name': recipe.name,
+                'description': recipe.description,
+                'imageurl': recipe.imageurl,
+                'category': recipe.category,
+                'ingredients': recipe.ingredients.split('\n'),
+                'instructions': recipe.instructions.split('\n')
+            } for recipe in recipes
+        ]
+        return JsonResponse({'recipes': recipes_list}, status=200)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    
+from django.shortcuts import get_list_or_404
+    
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_recipe(request, id=None):
+    # Initialize query parameters
+    query_params = {}
 
+    # Retrieve parameters from GET request
+    if id is None:
+        id = request.GET.get('id')
+    name = request.GET.get('name')
+    description = request.GET.get('description')
+    imageurl = request.GET.get('imageurl')
+    category = request.GET.get('category')
+    ingredients = request.GET.get('ingredients')
+    instructions = request.GET.get('instructions')
+
+    # Try to convert id to integer if it's provided
+    if id is not None:
+        try:
+            id = int(id)
+            query_params['id'] = id
+        except ValueError:
+            raise Http404("Invalid recipe ID")
+    
+    # Add other query parameters
+    if name is not None:
+        query_params['name__iexact'] = name
+    if description is not None:
+        query_params['description__icontains'] = description
+    if imageurl is not None:
+        query_params['imageurl__icontains'] = imageurl
+    if category is not None:
+        query_params['category__iexact'] = category
+    if ingredients is not None:
+        query_params['ingredients__icontains'] = ingredients
+    if instructions is not None:
+        query_params['instructions__icontains'] = instructions
+
+    # Retrieve recipes by any or all parameters
+    if query_params:
+        recipes = get_list_or_404(Recipe, **query_params)
+    else:
+        raise Http404("No valid query parameter provided")
+
+    recipes_list = [{
+        'id': recipe.id,
+        'name': recipe.name,
+        'description': recipe.description,
+        'imageurl': recipe.imageurl,
+        'category': recipe.category,
+        'ingredients': recipe.ingredients.split('\n'),
+        'instructions': recipe.instructions.split('\n')
+    } for recipe in recipes]
+
+    return JsonResponse(recipes_list, safe=False, status=200)
+    
+import logging
+
+logger = logging.getLogger(__name__)
+from django.shortcuts import render, redirect
+from django.urls import reverse
+from django.http import HttpResponseRedirect
+from .models import Recipe
+from .forms import RecipeForm
+
+def add_recipe(request):
+    if request.method == "POST":
+        name = request.POST.get("name")
+        description = request.POST.get("description")
+        imageurl = request.POST.get("imageurl")
+        category = request.POST.get("category")
+        ingredients = request.POST.get("ingredients")
+        instructions = request.POST.get("instructions")
+        
+        new_recipe = Recipe(
+            name=name,
+            description=description,
+            imageurl=imageurl,
+            category=category,
+            ingredients=ingredients,
+            instructions=instructions
+        )
+        new_recipe.save()
+        
+        return HttpResponseRedirect(
+            f'{reverse("thankyou_add")}?name={name}&description={description}&imageurl={imageurl}&category={category}&ingredients={ingredients}&instructions={instructions}'
+        )
+    else:
+        return render(request, 'add_recipe.html')  # Render the form for GET requests
+
+
+def thankyou_add(request):
+    name = request.GET.get("name", "Unknown")
+    description = request.GET.get("description", "Unknown")
+    imageurl = request.GET.get("imageurl", "Unknown")
+    category = request.GET.get("category", "Unknown")
+    ingredients = request.GET.get("ingredients", "Unknown")
+    instructions = request.GET.get("instructions", "Unknown")
+    
+    return render(request, 'thankyou_add.html', {
+        'name': name,
+        'description': description,
+        'imageurl': imageurl,
+        'category': category,
+        'ingredients': ingredients,
+        'instructions': instructions
+    })
+
+
+
+
+def new_recipe(request):
+    return render(request, 'new_recipe.html')
+
+def recipes(request):
+    all_recipes = Recipe.objects.all()
+    return render(request, 'recipes.html', {'recipes': all_recipes})
 
 def profile_settings(request):
     if request.method == 'POST':
@@ -439,14 +608,32 @@ def get_user_info(request):
 from django.shortcuts import render, get_object_or_404
 from .models import Recipe
 
-def recipe_detail(request, id):
-    recipe = get_object_or_404(Recipe, id=id)
-    ingredients_list = recipe.ingredients.split('\n')
-    steps_list = recipe.steps.split('\n')
+from django.shortcuts import render, get_object_or_404
+from .models import Recipe
 
-    context = {
-        'recipe': recipe,
-        'ingredients': ingredients_list,
-        'steps': steps_list,
-    }
-    return render(request, 'recipe_detail.html', context)
+
+
+def recipe_detail(request, pk):
+    recipe = get_object_or_404(Recipe, pk=pk)
+    return render(request, 'recipe_detail.html', {'recipe': recipe})
+
+
+
+from .forms import RecipeForm
+
+from django.shortcuts import render, get_object_or_404, redirect
+from .models import Recipe
+
+def edit_recipe(request, recipe_id):
+    recipe = get_object_or_404(Recipe, id=recipe_id)
+    if request.method == 'POST':
+        recipe.name = request.POST['name']
+        recipe.description = request.POST['description']
+        recipe.imageurl = request.POST['imageurl']
+        recipe.category = request.POST['category']
+        recipe.ingredients = request.POST['ingredients']
+        recipe.instructions = request.POST['instructions']
+        recipe.save()
+        return redirect('recipes')
+    return render(request, 'edit_recipe.html', {'recipe': recipe})
+
