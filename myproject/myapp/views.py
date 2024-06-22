@@ -1,6 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse, HttpResponseRedirect, Http404
-from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import authenticate, update_session_auth_hash, login as auth_login
 from django.views.decorators.http import require_http_methods
 from django.conf import settings
@@ -13,6 +12,28 @@ import bcrypt
 import jwt
 from datetime import datetime, timedelta
 from django.urls import reverse
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+from rest_framework import viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from .models import Review
+from .serializers import ReviewSerializer
+from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404
+from rest_framework.views import APIView
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
+from django.http import Http404
+from .models import ShopItem
+from .serializers import ShopItemSerializer
+from urllib.parse import urlencode
+from django.shortcuts import get_object_or_404, get_list_or_404
+
+
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -275,7 +296,7 @@ def post_recipe(request):
             
         )
         new_recipe.save()
-        return JsonResponse({'status': 'success', 'recipe_id': new_recipe.id}, status=201)
+        return JsonResponse({'status': 'success', 'recipeid': new_recipe.id}, status=201)
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
@@ -342,48 +363,44 @@ def delete_recipe(request):
         return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
 
 
-    
-from django.shortcuts import render, redirect
-from django.urls import reverse
-from urllib.parse import urlencode
-from django.views.decorators.csrf import csrf_exempt
-from .models import Recipe
-
 @csrf_exempt
 def remove_recipe(request):
     if request.method == "POST":
-        recipe_ids = request.POST.getlist('recipe_ids')
-        deleted_recipes = Recipe.objects.filter(id__in=recipe_ids)
+        # Correctly get the list of recipe IDs from the POST data
+        recipeids = request.POST.getlist('recipe_ids')
         
-        if deleted_recipes.exists():
-            recipe_names = ', '.join([recipe.name for recipe in deleted_recipes])
-            recipe_descriptions = ', '.join([recipe.description for recipe in deleted_recipes])
-            recipe_categories = ', '.join([recipe.category for recipe in deleted_recipes])
-            recipe_imageurls = ', '.join([recipe.imageurl for recipe in deleted_recipes])
-            recipe_ingredients = ' | '.join([recipe.ingredients for recipe in deleted_recipes])
-            recipe_instructions = ' | '.join([recipe.instructions for recipe in deleted_recipes])
+        if recipeids:
+            # Convert the recipe IDs to integers
+            recipeids = [int(id) for id in recipeids]
             
-            # Delete recipes after collecting details
-            deleted_recipes.delete()
+            # Filter recipes using the list of IDs
+            deleted_recipes = Recipe.objects.filter(id__in=recipeids)
             
-            # Prepare query parameters
-            query_params = urlencode({
-                'name': recipe_names,
-                'description': recipe_descriptions,
-                'category': recipe_categories,
-                'imageurl': recipe_imageurls,
-                'ingredients': recipe_ingredients,
-                'instructions': recipe_instructions
-            })
-            
-            return redirect(f'/thankyou/?{query_params}')
-        
+            if deleted_recipes.exists():
+                recipe_names = ', '.join([recipe.name for recipe in deleted_recipes])
+                recipe_descriptions = ', '.join([recipe.description for recipe in deleted_recipes])
+                recipe_categories = ', '.join([recipe.category for recipe in deleted_recipes])
+                recipe_imageurls = ', '.join([recipe.imageurl for recipe in deleted_recipes])
+                recipe_ingredients = ' | '.join([recipe.ingredients for recipe in deleted_recipes])
+                recipe_instructions = ' | '.join([recipe.instructions for recipe in deleted_recipes])
+                
+                # Delete recipes after collecting details
+                deleted_recipes.delete()
+                
+                # Prepare query parameters
+                query_params = urlencode({
+                    'name': recipe_names,
+                    'description': recipe_descriptions,
+                    'category': recipe_categories,
+                    'imageurl': recipe_imageurls,
+                    'ingredients': recipe_ingredients,
+                    'instructions': recipe_instructions
+                })
+                
+                return redirect(f'/thankyou/?{query_params}')
     
     recipes = Recipe.objects.all()
     return render(request, 'remove_recipe.html', {'recipes': recipes})
-
-    
-from django.shortcuts import render
 
 def thankyou(request):
     # Retrieve query parameters from the request
@@ -407,7 +424,6 @@ def thankyou(request):
     # Render the thankyou template with the provided context
     return render(request, 'thankyou.html', context)
 
-
 # Add other view functions here
 @csrf_exempt
 @require_http_methods(["GET"])
@@ -429,7 +445,7 @@ def get_all_recipes(request):
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
     
-from django.shortcuts import get_list_or_404
+
     
 @csrf_exempt
 @require_http_methods(["GET"])
@@ -486,15 +502,7 @@ def get_recipe(request, id=None):
     } for recipe in recipes]
 
     return JsonResponse(recipes_list, safe=False, status=200)
-    
-import logging
-
-logger = logging.getLogger(__name__)
-from django.shortcuts import render, redirect
-from django.urls import reverse
-from django.http import HttpResponseRedirect
-from .models import Recipe
-from .forms import RecipeForm
+ 
 
 def add_recipe(request):
     if request.method == "POST":
@@ -581,13 +589,6 @@ def profile_settings(request):
     }
     return render(request, 'profile_settings.html', context)
 
-from django.shortcuts import render
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth.decorators import login_required
-import logging
-
-logger = logging.getLogger(__name__)
 
 @login_required
 def get_user_info(request):
@@ -605,12 +606,6 @@ def get_user_info(request):
         logger.debug("Invalid request method")
         return JsonResponse({'message': 'Invalid request method.'}, status=405)
     
-from django.shortcuts import render, get_object_or_404
-from .models import Recipe
-
-from django.shortcuts import render, get_object_or_404
-from .models import Recipe
-
 
 
 def recipe_detail(request, pk):
@@ -619,21 +614,396 @@ def recipe_detail(request, pk):
 
 
 
-from .forms import RecipeForm
+# views.py
 
+# views.py
 from django.shortcuts import render, get_object_or_404, redirect
 from .models import Recipe
 
 def edit_recipe(request, recipe_id):
     recipe = get_object_or_404(Recipe, id=recipe_id)
-    if request.method == 'POST':
-        recipe.name = request.POST['name']
-        recipe.description = request.POST['description']
-        recipe.imageurl = request.POST['imageurl']
-        recipe.category = request.POST['category']
-        recipe.ingredients = request.POST['ingredients']
-        recipe.instructions = request.POST['instructions']
+    if request.method == "POST":
+        recipe.name = request.POST.get('name')
+        recipe.description = request.POST.get('description')
+        recipe.imageurl = request.POST.get('imageurl')
+        recipe.category = request.POST.get('category')
+        recipe.ingredients = request.POST.get('ingredients')
+        recipe.instructions = request.POST.get('instructions')
         recipe.save()
-        return redirect('recipes')
+        return redirect('/')  # Redirect to the root URL after saving the recipe
+
     return render(request, 'edit_recipe.html', {'recipe': recipe})
 
+
+
+@csrf_exempt
+def update_recipe(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            
+            # Required to identify the recipe
+            recipe_id = data.get("id")
+            if not recipe_id:
+                return JsonResponse({'status': 'error', 'message': 'Recipe ID is required'}, status=400)
+            
+            # Retrieve the recipe to be updated
+            try:
+                recipe = Recipe.objects.get(id=recipe_id)
+            except ObjectDoesNotExist:
+                return JsonResponse({'status': 'error', 'message': 'Recipe not found'}, status=404)
+            except MultipleObjectsReturned:
+                return JsonResponse({'status': 'error', 'message': 'Multiple recipes found with the same ID'}, status=400)
+            
+            # Check if any fields to update are provided
+            fields_to_update = ['name', 'description', 'imageurl', 'category', 'ingredients', 'instructions']
+            update_data = {field: data[field] for field in fields_to_update if field in data}
+
+            if not update_data:
+                return JsonResponse({'status': 'error', 'message': 'No fields provided to update'}, status=400)
+
+            # Update the recipe fields
+            for field, value in update_data.items():
+                setattr(recipe, field, value)
+            
+            # Save the updated recipe
+            recipe.save()
+            
+            return JsonResponse({'status': 'success', 'message': 'Recipe updated successfully'})
+        
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    else:
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
+
+
+
+
+class ShopItemList(APIView):
+    def get(self, request):
+        items = ShopItem.objects.all()
+        serializer = ShopItemSerializer(items, many=True)
+        return Response({'items': serializer.data}, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        serializer = ShopItemSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'status': 'success', 'item_id': serializer.instance.id}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class ShopItemDetail(APIView):
+    def get_object(self, id):
+        try:
+            return ShopItem.objects.get(id=id)
+        except ShopItem.DoesNotExist:
+            raise Http404
+
+    def get(self, request, id):
+        item = self.get_object(id)
+        serializer = ShopItemSerializer(item)
+        return Response(serializer.data)
+
+    def put(self, request, id):
+        item = self.get_object(id)
+        serializer = ShopItemSerializer(item, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'status': 'success', 'message': 'Item updated successfully'})
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, id):
+        item = self.get_object(id)
+        item.delete()
+        return Response({'status': 'success', 'message': 'Item deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
+
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
+from .serializers import ShopItemSerializer
+import logging
+
+logger = logging.getLogger(__name__)
+
+@api_view(['POST'])
+def post_shop_item(request):
+    serializer = ShopItemSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response({'status': 'success', 'item_id': serializer.instance.id}, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+@api_view(['POST'])
+def update_shop_item(request):
+    if request.method == "POST":
+        try:
+            data = request.data
+            item_id = data.get("id")
+            if not item_id:
+                return Response({'status': 'error', 'message': 'Item ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                item = ShopItem.objects.get(id=item_id)
+            except ShopItem.DoesNotExist:
+                return Response({'status': 'error', 'message': 'Item not found'}, status=status.HTTP_404_NOT_FOUND)
+
+            serializer = ShopItemSerializer(item, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({'status': 'success', 'message': 'Item updated successfully'})
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    else:
+        return Response({'status': 'error', 'message': 'Invalid request method'}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+def get_all_shop_items(request):
+    items = ShopItem.objects.all()
+    serializer = ShopItemSerializer(items, many=True)
+    return Response({'items': serializer.data}, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+def get_shop_item(request, id=None):
+    query_params = {}
+    if id is None:
+        id = request.GET.get('id')
+    name = request.GET.get('name')
+    description = request.GET.get('description')
+    price = request.GET.get('price')
+    quantity = request.GET.get('quantity')
+    image = request.GET.get('image')
+
+    if id is not None:
+        try:
+            id = int(id)
+            query_params['id'] = id
+        except ValueError:
+            raise Http404("Invalid item ID")
+    
+    if name is not None:
+        query_params['name__iexact'] = name
+    if description is not None:
+        query_params['description__icontains'] = description
+    if price is not None:
+        query_params['price'] = price
+    if quantity is not None:
+        query_params['quantity'] = quantity
+    if image is not None:
+        query_params['image__iexact'] = image
+
+    if query_params:
+        items = ShopItem.objects.filter(**query_params)
+        if not items.exists():
+            raise Http404("No items found with the given parameters")
+    else:
+        raise Http404("No valid query parameter provided")
+
+    serializer = ShopItemSerializer(items, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(['POST', 'DELETE'])
+def delete_shop_item(request):
+    if request.method in ["DELETE", "POST"]:
+        try:
+            data = request.data
+
+            id = data.get("id")
+            name = data.get("name")
+            description = data.get("description")
+            price = data.get("price")
+            quantity = data.get("quantity")
+            image = data.get("image")
+
+            filter_criteria = {}
+            if id is not None:
+                filter_criteria['id'] = id
+            if name is not None:
+                filter_criteria['name__iexact'] = name
+            if description is not None:
+                filter_criteria['description__icontains'] = description
+            if price is not None:
+                filter_criteria['price'] = price
+            if quantity is not None:
+                filter_criteria['quantity'] = quantity
+            if image is not None:
+                filter_criteria['image__iexact'] = image
+
+            if not filter_criteria:
+                return Response({'status': 'error', 'message': 'No valid parameter provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                item = ShopItem.objects.get(**filter_criteria)
+            except ShopItem.DoesNotExist:
+                return Response({'status': 'error', 'message': 'Item not found'}, status=status.HTTP_404_NOT_FOUND)
+            except ShopItem.MultipleObjectsReturned:
+                return Response({'status': 'error', 'message': 'Multiple items found. Provide more specific criteria.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            item.delete()
+            return Response({'status': 'success', 'message': 'Item deleted successfully'})
+
+        except Exception as e:
+            return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    else:
+        return Response({'status': 'error', 'message': 'Invalid request method'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+from rest_framework import viewsets
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
+from django.http import Http404
+from .models import Review
+from .serializers import ReviewSerializer
+
+class ReviewList(APIView):
+    def get(self, request):
+        reviews = Review.objects.all()
+        serializer = ReviewSerializer(reviews, many=True)
+        return Response({'reviews': serializer.data}, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        serializer = ReviewSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'status': 'success', 'review_id': serializer.instance.id}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class ReviewDetail(APIView):
+    def get_object(self, id):
+        try:
+            return Review.objects.get(id=id)
+        except Review.DoesNotExist:
+            raise Http404
+
+    def get(self, request, id):
+        review = self.get_object(id)
+        serializer = ReviewSerializer(review)
+        return Response(serializer.data)
+
+    def put(self, request, id):
+        review = self.get_object(id)
+        serializer = ReviewSerializer(review, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'status': 'success', 'message': 'Review updated successfully'})
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, id):
+        review = self.get_object(id)
+        review.delete()
+        return Response({'status': 'success', 'message': 'Review deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
+
+@api_view(['POST'])
+def create_review(request):
+    serializer = ReviewSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response({'status': 'success', 'review_id': serializer.instance.id}, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+def update_review(request):
+    try:
+        data = request.data
+        review_id = data.get("id")
+        if not review_id:
+            return Response({'status': 'error', 'message': 'Review ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            review = Review.objects.get(id=review_id)
+        except Review.DoesNotExist:
+            return Response({'status': 'error', 'message': 'Review not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = ReviewSerializer(review, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'status': 'success', 'message': 'Review updated successfully'})
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    except Exception as e:
+        return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+def get_all_reviews(request):
+    reviews = Review.objects.all()
+    serializer = ReviewSerializer(reviews, many=True)
+    return Response({'reviews': serializer.data}, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+def get_review(request, id=None):
+    query_params = {}
+    if id is None:
+        id = request.GET.get('id')
+    user_id = request.GET.get('user_id')
+    username = request.GET.get('username')
+    comment = request.GET.get('comment')
+    liked = request.GET.get('liked')
+
+    if id is not None:
+        try:
+            id = int(id)
+            query_params['id'] = id
+        except ValueError:
+            raise Http404("Invalid review ID")
+
+    if user_id is not None:
+        query_params['user_id'] = user_id
+    if username is not None:
+        query_params['username__iexact'] = username
+    if comment is not None:
+        query_params['comment__icontains'] = comment
+    if liked is not None:
+        query_params['liked'] = liked.lower() == 'true'
+
+    if query_params:
+        reviews = Review.objects.filter(**query_params)
+        if not reviews.exists():
+            raise Http404("No reviews found with the given parameters")
+    else:
+        raise Http404("No valid query parameter provided")
+
+    serializer = ReviewSerializer(reviews, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(['POST', 'DELETE'])
+def delete_review(request):
+    try:
+        data = request.data
+
+        id = data.get("id")
+        user_id = data.get("user_id")
+        username = data.get("username")
+        comment = data.get("comment")
+        liked = data.get("liked")
+
+        filter_criteria = {}
+        if id is not None:
+            filter_criteria['id'] = id
+        if user_id is not None:
+            filter_criteria['user_id'] = user_id
+        if username is not None:
+            filter_criteria['username__iexact'] = username
+        if comment is not None:
+            filter_criteria['comment__icontains'] = comment
+        if liked is not None:
+            filter_criteria['liked'] = liked.lower() == 'true'
+
+        if not filter_criteria:
+            return Response({'status': 'error', 'message': 'No valid parameter provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            review = Review.objects.get(**filter_criteria)
+        except Review.DoesNotExist:
+            return Response({'status': 'error', 'message': 'Review not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Review.MultipleObjectsReturned:
+            return Response({'status': 'error', 'message': 'Multiple reviews found. Provide more specific criteria.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        review.delete()
+        return Response({'status': 'success', 'message': 'Review deleted successfully'})
+
+    except Exception as e:
+        return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

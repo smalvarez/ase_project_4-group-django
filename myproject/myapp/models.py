@@ -51,12 +51,36 @@ class UserProfile(models.Model):
 
 # Recipe Model
 class Recipe(models.Model):
-    name = models.CharField(max_length=200)
+    name = models.CharField(max_length=255)
     description = models.TextField()
-    imageurl = models.CharField(max_length=200)
+    imageurl = models.URLField(db_column='imageurl')
     category = models.CharField(max_length=100)
     ingredients = models.TextField()
     instructions = models.TextField()
 
     def __str__(self):
         return self.name
+
+# models.py
+
+
+
+class Review(models.Model):
+    user_id = models.IntegerField()
+    username = models.CharField(max_length=255)
+    comment = models.TextField()
+    liked = models.BooleanField()
+
+    class Meta:
+        db_table = 'myapp_reviews'
+
+
+from django.db import models
+
+class ShopItem(models.Model):
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+    price = models.DecimalField(decimal_places=2, max_digits=10)
+    quantity = models.IntegerField()
+    image = models.CharField(max_length=255)
+
